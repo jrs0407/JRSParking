@@ -1,4 +1,3 @@
-// types.ts
 export interface ParkingSpot {
     id: string;
     number: string;
