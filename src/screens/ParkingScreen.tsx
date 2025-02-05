@@ -6,61 +6,50 @@ import {
   Alert,
   Button,
   TextInput,
-  ScrollView
+  ScrollView,
 } from 'react-native';
-import axios from 'axios';
-
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
 import { ParkingGrid } from '../components/ParkingGrid';
 import { Spot } from '../types';
 
-// Ajusta la IP para tu servidor de plazas
-const API_URL = 'http://10.0.2.2:6000/api/spots';
+// Importamos nuestro store de Zustand
+import { useParkingStore } from '../store/useParkingStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Parking'>;
 
 export default function ParkingScreen({ navigation }: Props) {
-  const [spots, setSpots] = useState<Spot[]>([]);
+  const { spots, fetchSpots } = useParkingStore();
+
+  // Hook búsqueda de matrícula 
   const [searchPlate, setSearchPlate] = useState('');
 
-  // Cargar plazas al montar
+  // Cargamos las plazas al montar el componente
   useEffect(() => {
-    fetchSpots();
+    fetchSpots().catch(() => {
+      Alert.alert('Error', 'No se pudieron obtener las plazas del servidor');
+    });
   }, []);
 
-  const fetchSpots = async () => {
-    try {
-      const response = await axios.get(API_URL);
-      setSpots(response.data);
-    } catch (error) {
-      console.error('Error al obtener plazas:', error);
-      Alert.alert('Error', 'No se pudieron obtener las plazas del servidor');
-    }
-  };
-
-  // Al pulsar en una plaza (si quisieras ir a su detalle directamente)
+  //Pulsar en una plaza para ver mas info
   const handleSpotClick = (spot: Spot) => {
-    // Podrías navegar a VehicleInfoScreen con la matrícula
     navigation.navigate('VehicleInfo', { plate: spot.plate });
   };
 
-  // Buscar la matrícula introducida en el TextInput
+  // Buscar la matrícula introducida
   const handleSearch = () => {
-    // Normalizamos la búsqueda (mayúsculas, sin espacios) si es necesario
     const plateToFind = searchPlate.trim().toUpperCase();
     if (!plateToFind) {
       Alert.alert('Aviso', 'Introduce una matrícula');
       return;
     }
 
-    // Buscamos si existe en spots y está "occupied"
+    // Busca la matrícula dentro de los spots
     const foundSpot = spots.find(
       (s) => s.plate.toUpperCase() === plateToFind && s.status === 'occupied'
     );
 
     if (foundSpot) {
-      // Navegamos a VehicleInfoScreen
       navigation.navigate('VehicleInfo', { plate: foundSpot.plate });
     } else {
       Alert.alert('No encontrado', 'Esta matrícula no está en el parking');
@@ -70,12 +59,19 @@ export default function ParkingScreen({ navigation }: Props) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Plazas del Parking</Text>
-
+      
       {/* Grid con las plazas */}
       <ParkingGrid spots={spots} onSpotClick={handleSpotClick} />
 
       {/* Botón para recargar */}
-      <Button title="Actualizar plazas" onPress={fetchSpots} />
+      <Button
+        title="Actualizar plazas"
+        onPress={() => {
+          fetchSpots().catch(() => {
+            Alert.alert('Error', 'No se pudieron obtener las plazas del servidor');
+          });
+        }}
+      />
 
       {/* Barra de búsqueda */}
       <View style={styles.searchContainer}>

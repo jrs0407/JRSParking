@@ -8,42 +8,36 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../App';
-import axios from 'axios';
-import { Spot } from '../types';
-
-const API_URL = 'http://10.0.2.2:6000/api/spots';
+import { useParkingStore } from '../store/useParkingStore';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VehicleInfo'>;
 
 export default function VehicleInfoScreen({ route }: Props) {
-  const { plate } = route.params; // Recibimos la matrícula
+  const { plate } = route.params;
+  const { getSpotByPlate, fetchSpots } = useParkingStore();
+
   const [loading, setLoading] = useState(true);
-  const [spot, setSpot] = useState<Spot | null>(null);
+  const [spot, setSpot] = useState(() => getSpotByPlate(plate) || null);
 
   useEffect(() => {
-    // Al montar, cargar todas las plazas y filtrar por plate
-    fetchSpotInfo();
-  }, []);
-
-  const fetchSpotInfo = async () => {
-    try {
-      const response = await axios.get(API_URL);
-      const spots: Spot[] = response.data;
-
-      // Buscamos la plaza con la matrícula
-      const found = spots.find((s) => s.plate.toUpperCase() === plate.toUpperCase());
-      if (!found) {
-        Alert.alert('No se encontró', 'No hay plaza con esa matrícula');
-      } else {
-        setSpot(found);
-      }
-    } catch (error) {
-      console.error('Error al buscar la plaza', error);
-      Alert.alert('Error', 'No se pudo conectar con el servidor');
-    } finally {
+    if (!spot) {
+      fetchSpots()
+        .then(() => {
+          const found = getSpotByPlate(plate);
+          if (!found) {
+            Alert.alert('No se encontró', 'No hay plaza con esa matrícula');
+          } else {
+            setSpot(found);
+          }
+        })
+        .catch(() => {
+          Alert.alert('Error', 'No se pudo conectar con el servidor');
+        })
+        .finally(() => setLoading(false));
+    } else {
       setLoading(false);
     }
-  };
+  }, []);
 
   if (loading) {
     return (
@@ -56,19 +50,35 @@ export default function VehicleInfoScreen({ route }: Props) {
   if (!spot) {
     return (
       <View style={styles.container}>
-        <Text style={styles.infoText}>No hay datos para la matrícula {plate}</Text>
+        <Text style={styles.infoText}>
+          No hay datos para la matrícula {plate}
+        </Text>
       </View>
     );
   }
 
-  // Si encontramos el spot
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Información del Vehículo</Text>
-      <Text style={styles.infoText}>ID: {spot.id}</Text>
-      <Text style={styles.infoText}>Matrícula: {spot.plate}</Text>
-      <Text style={styles.infoText}>Estado: {spot.status}</Text>
-      {/* Podrías mostrar más info aquí si tu backend la provee */}
+      <View style={styles.card}>
+        <Text style={styles.label}>ID:</Text>
+        <Text style={styles.value}>{spot.id}</Text>
+
+        <Text style={styles.label}>Matrícula:</Text>
+        <Text style={styles.value}>{spot.plate}</Text>
+
+        <Text style={styles.label}>Estado:</Text>
+        <Text
+          style={[
+            styles.value,
+            spot.status === 'occupied'
+              ? styles.statusOccupied
+              : styles.statusAvailable,
+          ]}
+        >
+          {spot.status}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -77,19 +87,52 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
   },
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#f9fafb',
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
+    textAlign: 'center',
+    marginBottom: 24,
+    color: '#1f2937',
   },
   infoText: {
     fontSize: 16,
-    marginBottom: 8,
+    color: '#374151',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  card: {
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  value: {
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 16,
+  },
+  statusOccupied: {
+    color: '#dc2626',
+  },
+  statusAvailable: {
+    color: '#16a34a',
   },
 });

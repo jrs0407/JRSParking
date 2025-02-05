@@ -5,12 +5,10 @@ import HomeScreen from './src/screens/HomeScreen';
 import ParkingScreen from './src/screens/ParkingScreen';
 import VehicleInfoScreen from './src/screens/VehicleInfoScreen';
 
-
-
 export type RootStackParamList = {
   Home: undefined;
   Parking: undefined;
-  VehicleInfo: { plate: string }; // Recibiremos la 'plate'
+  VehicleInfo: { plate: string }; 
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -23,7 +21,7 @@ export default function App() {
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          options={{ title: 'Menú Principal' }}
+          options={{ title: 'Parking del Zaidin Vergeles' }}
         />
 
         <Stack.Screen
