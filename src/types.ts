@@ -3,7 +3,7 @@ export interface ParkingSpot {
     number: string;
     isOccupied: boolean;
     type: 'disabled' | 'electric' | 'standard';
-    currentVehicle?: string;  // id del vehículo actual si está ocupado
+    currentVehicle?: string; 
   }
   
   export interface VehicleEntry {

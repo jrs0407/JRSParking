@@ -1,4 +1,3 @@
-// src/store/useParkingStore.ts
 import { create } from 'zustand';
 import axios from 'axios';
 import { Spot } from '../types'; 
